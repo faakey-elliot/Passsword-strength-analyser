@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Strength Analyzer</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+        }
+
+        .container {
+            width: 480px;
+            padding: 40px;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+            color: white;
+            text-align: center;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        h2 {
+            margin-bottom: 25px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            outline: none;
+            margin-bottom: 15px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            transition: 0.3s;
+        }
+
+        input[type="password"]:focus {
+            background: rgba(255,255,255,0.25);
+            box-shadow: 0 0 10px #00ffcc;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            background: linear-gradient(45deg, #00c9ff, #92fe9d);
+            color: black;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+
+        .strength-badge {
+            display: inline-block;
+            padding: 6px 15px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .weak { background: #ff4d4d; }
+        .medium { background: #ffa500; }
+        .strong { background: #00ff99; color: black; }
+
+        .progress-bar {
+            margin: 20px 0;
+            height: 22px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            line-height: 22px;
+            font-size: 12px;
+            font-weight: bold;
+            color: black;
+            text-align: center;
+            transition: width 0.6s ease-in-out;
+        }
+
+        .breach-safe {
+            color: #00ff99;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .breach-danger {
+            color: #ff4d4d;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .checkbox-text {
+            font-size: 13px;
+        }
+
+        /* Suggested password styling */
+        .suggested-box {
+            margin-top: 30px;
+        }
+
+        .suggested-password {
+            margin-top: 12px;
+        }
+
+        .suggested-password code {
+            display: inline-block;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.25);
+            letter-spacing: 1px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔐 Password Strength Analyzer</h2>
+
+    <form method="POST">
+        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+        <label class="checkbox-text">
+            <input type="checkbox" onclick="togglePassword()"> Show Password
+        </label>
+
+        <button type="submit">Analyze Password</button>
+    </form>
+
+    {% if strength %}
+
+        <h3>
+            Strength:
+            <span class="strength-badge
+                {% if strength == 'Very Weak' or strength == 'Weak' %}weak
+                {% elif strength == 'Medium' %}medium
+                {% else %}strong{% endif %}">
+                {{ strength }}
+            </span>
+        </h3>
+
+        <div class="progress-bar">
+            <div class="progress-fill"
+                style="width: {{ strength_percent }}%;
+                background:
+                {% if strength_percent < 40 %}#ff4d4d
+                {% elif strength_percent < 70 %}#ffa500
+                {% else %}#00ff99{% endif %};">
+                {{ strength_percent }}%
+            </div>
+        </div>
+
+        <p>Entropy: {{ entropy }} bits</p>
+        <p>Estimated Crack Time: {{ crack_time }}</p>
+
+        <p class="{% if 'NOT' in breach_status %}breach-safe{% else %}breach-danger{% endif %}">
+            {{ breach_status }}
+        </p>
+
+        {% if suggested_password %}
+            <div class="suggested-box">
+                🔐 <strong>Suggested Strong Password:</strong>
+                <div class="suggested-password">
+                    <code>{{ suggested_password }}</code>
+                </div>
+            </div>
+        {% endif %}
+
+    {% endif %}
+
+</div>
+
+<script>
+function togglePassword() {
+    var x = document.getElementById("password");
+    x.type = x.type === "password" ? "text" : "password";
+}
+</script>
+
+</body>
+</html>
