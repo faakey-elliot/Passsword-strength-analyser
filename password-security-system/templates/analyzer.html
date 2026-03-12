@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Password Analyzer</title>
+
+<style>
+
+body{
+font-family: Arial;
+text-align:center;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
+}
+
+input,button{
+padding:10px;
+margin:10px;
+border-radius:8px;
+border:none;
+font-size:16px;
+}
+
+button{
+cursor:pointer;
+background:#00e6e6;
+font-weight:bold;
+}
+
+button:hover{
+background:#00baba;
+}
+
+.gauge{
+width:320px;
+margin:40px auto;
+}
+
+.gauge-body{
+width:100%;
+height:0;
+padding-bottom:50%;
+background:#1b1111;
+position:relative;
+border-top-left-radius:300px;
+border-top-right-radius:300px;
+overflow:hidden;
+box-shadow:0 0 25px rgba(0,0,0,0.6);
+}
+
+.gauge-fill{
+position:absolute;
+top:100%;
+left:0;
+width:100%;
+height:100%;
+background:conic-gradient(red,orange,yellow,lightgreen,green);
+transform-origin:center top;
+transform:rotate(0deg);
+transition:transform 1s ease;
+}
+
+.needle{
+width:4px;
+height:120px;
+background:rgb(39,31,195);
+position:absolute;
+bottom:0;
+left:50%;
+transform-origin:bottom center;
+transform:rotate(-90deg);
+transition:transform 1s cubic-bezier(.25,1,.5,1);
+z-index:10;
+}
+
+.gauge-center{
+width:70%;
+height:140%;
+background:#111;
+border-radius:50%;
+position:absolute;
+top:22%;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+align-items:flex-start;
+justify-content:center;
+padding-top:25px;
+font-size:30px;
+font-weight:bold;
+}
+
+#crackTime,#entropyValue{
+font-size:18px;
+margin-top:10px;
+color:#00e6e6;
+}
+
+#strengthText{
+font-size:20px;
+margin-top:20px;
+}
+
+#attackBox{
+width:320px;
+margin:20px auto;
+padding:15px;
+background:black;
+color:#00ff00;
+font-family:monospace;
+border-radius:8px;
+min-height:80px;
+box-shadow:0 0 10px #00ff00;
+}
+
+.navbar{
+background:#111;
+padding:15px;
+text-align:center;
+}
+
+.navbar a{
+color:white;
+margin:15px;
+text-decoration:none;
+font-size:18px;
+font-weight:bold;
+}
+
+.navbar a:hover{
+color:#00e6e6;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Password Strength Analyzer</h1>
+
+<form method="POST">
+<div style="display:flex;justify-content:center;align-items:center;">
+<input type="password" name="password" id="password" placeholder="Enter password" value="{{ password }}">
+
+<button type="button" onclick="togglePassword()" style="margin-left:5px;">👁</button>
+</div>
+<br>
+
+<button type="submit">Analyze</button>
+<button type="button" onclick="copyPassword()">Copy Password</button>
+
+</form>
+
+<div class="gauge">
+<div class="gauge-body">
+
+<div class="gauge-fill" id="gaugeFill"></div>
+<div class="needle" id="needle"></div>
+
+<div class="gauge-center">
+<span id="percent">0%</span>
+</div>
+
+</div>
+</div>
+
+<p id="strengthText">Enter a password</p>
+<p id="crackTime">Estimated Crack Time: -</p>
+<p id="entropyValue">Entropy: - bits</p>
+
+<h3>Attack Simulation</h3>
+
+<div id="attackBox">Waiting for password analysis...</div>
+
+<div id="checklist" style="margin-top:20px;text-align:left;width:300px;margin:auto;font-size:15px;">
+<p id="len">❌ At least 8 characters</p>
+<p id="upper">❌ Contains uppercase letter</p>
+<p id="lower">❌ Contains lowercase letter</p>
+<p id="number">❌ Contains number</p>
+<p id="symbol">❌ Contains special symbol</p>
+</div>
+
+<script>
+
+function copyPassword(){
+let password=document.getElementById("password");
+password.select();
+navigator.clipboard.writeText(password.value);
+alert("Password copied!");
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+
+let strengthPercent=Number({{ strength_percent|default(0) }});
+
+let gaugeFill=document.getElementById("gaugeFill");
+let needle=document.getElementById("needle");
+let percent=document.getElementById("percent");
+let strengthText=document.getElementById("strengthText");
+
+percent.innerText=Math.round(strengthPercent)+"%";
+
+gaugeFill.style.transform="rotate("+(strengthPercent*1.8)+"deg)";
+needle.style.transform="rotate("+(strengthPercent*1.8-90)+"deg)";
+
+let text="Weak Password";
+
+if(strengthPercent>=40){text="Medium Password";}
+if(strengthPercent>=70){text="Strong Password";}
+if(strengthPercent>=90){text="Very Strong Password";}
+
+strengthText.innerText=text;
+
+document.getElementById("crackTime").innerText="Estimated Crack Time: {{ crack_time }}";
+document.getElementById("entropyValue").innerText="Entropy: {{ entropy }} bits";
+
+let password="{{ password }}";
+simulateAttack(password);
+
+});
+
+function simulateAttack(password){
+
+let box=document.getElementById("attackBox");
+
+let attempts=0;
+
+let chars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+let interval=setInterval(function(){
+
+let guess="";
+
+for(let i=0;i<password.length;i++){
+guess+=chars.charAt(Math.floor(Math.random()*chars.length));
+}
+
+box.innerText="Trying password: "+guess;
+
+attempts++;
+
+if(attempts>20){
+
+clearInterval(interval);
+
+let strength={{ strength_percent|default(0) }};
+
+if(strength<40){
+box.innerText="⚠ Attack Successful!\nPassword cracked easily.";
+}
+else if(strength<70){
+box.innerText="⚠ Partial success\nPassword may be cracked with time.";
+}
+else if(strength<90){
+box.innerText="🔒 Attack Failed\nPassword is strong.";
+}
+else{
+box.innerText="🛡 Attack Impossible\nVery strong password!";
+}
+
+}
+
+},150);
+
+}
+
+const passwordInput = document.getElementById("password");
+
+function checkPassword(pwd){
+
+setCheck("len",pwd.length>=8,"At least 8 characters");
+setCheck("upper",/[A-Z]/.test(pwd),"Contains uppercase letter");
+setCheck("lower",/[a-z]/.test(pwd),"Contains lowercase letter");
+setCheck("number",/[0-9]/.test(pwd),"Contains number");
+setCheck("symbol",/[!@#$%^&*(),.?":{}|<>]/.test(pwd),"Contains special symbol");
+
+}
+
+passwordInput.addEventListener("input",function(){
+checkPassword(passwordInput.value);
+});
+
+/* RUN ON PAGE LOAD */
+document.addEventListener("DOMContentLoaded",function(){
+checkPassword(passwordInput.value);
+});
+function setCheck(id,condition,text){
+
+let el=document.getElementById(id);
+
+if(condition){
+el.innerHTML="✔ "+text;
+el.style.color="lightgreen";
+}else{
+el.innerHTML="❌ "+text;
+el.style.color="red";
+}
+
+}
+
+function togglePassword(){
+
+let passwordField = document.getElementById("password");
+
+if(passwordField.type === "password"){
+passwordField.type = "text";
+}
+else{
+passwordField.type = "password";
+}
+
+}
+
+</script>
+
+<div class="navbar">
+<a href="/">Home</a>
+<a href="/dashboard">Dashboard</a>
+<a href="/breach">Breach Check</a>
+<a href="/generator">Generator</a>
+<a href="/tips">Security Tips</a>
+</div>
+
+</body>
+</html>
